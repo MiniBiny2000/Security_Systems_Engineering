@@ -1,0 +1,63 @@
+name: Build Python Security Tools
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build standalone Linux executables
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller ruff
+
+      - name: Validate Python files
+        run: |
+          python -m py_compile \
+            check_Wayland.py \
+            check_Encryption.py \
+            check_SELinux.py
+
+          ruff check \
+            check_Wayland.py \
+            check_Encryption.py \
+            check_SELinux.py
+
+      - name: Build standalone executables
+        run: |
+          pyinstaller --onefile check_Wayland.py
+          pyinstaller --onefile check_Encryption.py
+          pyinstaller --onefile check_SELinux.py
+
+      - name: Smoke test executables
+        run: |
+          ./dist/check_Wayland | python -m json.tool
+          ./dist/check_Encryption | python -m json.tool
+          ./dist/check_SELinux | python -m json.tool
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-security-tools
+          path: |
+            dist/check_Wayland
+            dist/check_Encryption
+            dist/check_SELinux

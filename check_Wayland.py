@@ -100,7 +100,6 @@ def main():
         output["details"] = detection["details"]
         output["error"] = detection["error"]
 
-        # 🔥 compute score
         output["score"] = compute_protocol_score(detection)
 
     except Exception as e:
